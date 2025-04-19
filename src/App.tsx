@@ -34,11 +34,44 @@ const lessons = [
 
 function App() {
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (email: string) => {
-    console.log("Submitting email:", email);
-    setSubmitted(true);
-    // In a real app, this would connect to an email service API
+  const handleSubmit = async (email: string) => {
+    setError(null);
+    const apiKey = import.meta.env.VITE_MAILERLITE_API_KEY;
+    const groupId = import.meta.env.VITE_MAILERLITE_GROUP_ID;
+
+    if (!apiKey || !groupId) {
+      setError("MailerLite API key or Group ID is not configured.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://connect.mailerlite.com/api/subscribers`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          email: email,
+          groups: [groupId],
+          resubscribe: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to subscribe. Please try again.");
+        setSubmitted(false);
+        return;
+      }
+
+      setSubmitted(true);
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
+      setSubmitted(false);
+    }
   };
 
   return (
@@ -46,6 +79,11 @@ function App() {
       <Header />
       <main>
         <Hero onSubmit={handleSubmit} isSubmitted={submitted} />
+        {error && (
+          <div className="max-w-6xl mx-auto mt-4 p-4 bg-red-100 text-red-700 rounded">
+            {error}
+          </div>
+        )}
         <CoursePreview lessons={lessons} />
       </main>
     </div>

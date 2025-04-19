@@ -3,16 +3,23 @@ import { motion } from 'framer-motion';
 import { Mail, ArrowRight } from 'lucide-react';
 
 interface EmailCaptureFormProps {
-  onSubmit: (email: string) => void;
+  onSubmit: (email: string) => Promise<void>;
   isSubmitted: boolean;
 }
 
 const EmailCaptureForm: React.FC<EmailCaptureFormProps> = ({ onSubmit, isSubmitted }) => {
   const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(email);
+    if (isSubmitting) return; // prevent multiple submissions
+    setIsSubmitting(true);
+    try {
+      await onSubmit(email);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -53,7 +60,8 @@ const EmailCaptureForm: React.FC<EmailCaptureFormProps> = ({ onSubmit, isSubmitt
         </div>
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span>Send Me The Lessons</span>
           <ArrowRight size={18} />
